@@ -1,0 +1,157 @@
+"""
+LeetCode 18 - 4Sum
+https://leetcode.com/problems/4sum/
+
+Given an array nums of n integers, return an array of all the unique
+quadruplets [nums[a], nums[b], nums[c], nums[d]] such that:
+    0 <= a, b, c, d < n
+    a, b, c, and d are distinct.
+    nums[a] + nums[b] + nums[c] + nums[d] == target
+
+You may return the answer in any order.
+
+Example 1:
+    Input: nums = [1,0,-1,0,-2,2], target = 0
+    Output: [[-2,-1,1,2],[-2,0,0,2],[-1,0,0,1]]
+
+Example 2:
+    Input: nums = [2,2,2,2,2], target = 8
+    Output: [[2,2,2,2]]
+
+Constraints:
+    1 <= nums.length <= 200
+    -10^9 <= nums[i] <= 10^9
+    -10^9 <= target <= 10^9
+"""
+
+
+class Solution:
+    def fourSum(self, nums: list[int], target: int) -> list[list[int]]:
+        """
+        Sort + two nested fixed elements + two pointers.
+
+        Generalizes the 3Sum approach by one more level: sort the array,
+        fix the first two elements of the quadruplet with nested loops
+        (skipping duplicates at each level), then use two pointers on the
+        remaining sorted subarray to find pairs that complete the target
+        sum - exactly the same two-pointer core as 3Sum, just nested one
+        level deeper.
+
+        Two pruning checks at each fixed level cut off entire branches
+        early:
+          - If the smallest possible sum from here on already exceeds
+            the target, no further (larger) choice at this level can work.
+          - If the largest possible sum from here on is still less than
+            the target, this choice is too small and we should move on.
+
+        Time Complexity:  O(n^3) - O(n log n) sort + O(n^2) pairs of
+                           fixed elements each doing an O(n) two-pointer
+                           scan
+        Space Complexity: O(1) extra (excluding the output and sort
+                           overhead)
+        """
+        nums.sort()
+        n = len(nums)
+        result = []
+
+        for i in range(n - 3):
+            if i > 0 and nums[i] == nums[i - 1]:
+                continue
+            # Smallest possible sum starting at i is already too big.
+            if nums[i] + nums[i + 1] + nums[i + 2] + nums[i + 3] > target:
+                break
+            # Largest possible sum starting at i is still too small.
+            if nums[i] + nums[n - 3] + nums[n - 2] + nums[n - 1] < target:
+                continue
+
+            for j in range(i + 1, n - 2):
+                if j > i + 1 and nums[j] == nums[j - 1]:
+                    continue
+                if nums[i] + nums[j] + nums[j + 1] + nums[j + 2] > target:
+                    break
+                if nums[i] + nums[j] + nums[n - 2] + nums[n - 1] < target:
+                    continue
+
+                left, right = j + 1, n - 1
+                remaining = target - nums[i] - nums[j]
+
+                while left < right:
+                    pair_sum = nums[left] + nums[right]
+
+                    if pair_sum == remaining:
+                        result.append([nums[i], nums[j], nums[left], nums[right]])
+                        left += 1
+                        right -= 1
+                        while left < right and nums[left] == nums[left - 1]:
+                            left += 1
+                        while left < right and nums[right] == nums[right + 1]:
+                            right -= 1
+                    elif pair_sum < remaining:
+                        left += 1
+                    else:
+                        right -= 1
+
+        return result
+
+    def fourSumBruteForce(self, nums: list[int], target: int) -> list[list[int]]:
+        """
+        Brute-force O(n^4) solution using a set for de-duplication,
+        provided for comparison.
+
+        Time Complexity:  O(n^4 log(n^4)) roughly - checking every
+                           quadruplet, plus set overhead; simplified here
+                           to O(n^4) for the core enumeration
+        Space Complexity: O(n^4) worst case for the dedup set (bounded in
+                           practice by the number of valid quadruplets)
+        """
+        nums_sorted = sorted(nums)
+        n = len(nums_sorted)
+        seen = set()
+
+        for a in range(n):
+            for b in range(a + 1, n):
+                for c in range(b + 1, n):
+                    for d in range(c + 1, n):
+                        if nums_sorted[a] + nums_sorted[b] + nums_sorted[c] + nums_sorted[d] == target:
+                            seen.add((nums_sorted[a], nums_sorted[b], nums_sorted[c], nums_sorted[d]))
+
+        return [list(quad) for quad in seen]
+
+
+def _normalize(quads):
+    """Sort each quadruplet and the overall list for order-independent comparison."""
+    return sorted(sorted(q) for q in quads)
+
+
+def run_tests():
+    sol = Solution()
+    test_cases = [
+        ([1, 0, -1, 0, -2, 2], 0, [[-2, -1, 1, 2], [-2, 0, 0, 2], [-1, 0, 0, 1]]),
+        ([2, 2, 2, 2, 2], 8, [[2, 2, 2, 2]]),
+        ([0, 0, 0, 0], 0, [[0, 0, 0, 0]]),
+        ([-3, -2, -1, 0, 0, 1, 2, 3], 0, [
+            [-3, -2, 2, 3], [-3, -1, 1, 3], [-3, 0, 0, 3], [-3, 0, 1, 2],
+            [-2, -1, 0, 3], [-2, -1, 1, 2], [-2, 0, 0, 2], [-1, 0, 0, 1],
+        ]),
+        ([1000000000, 1000000000, 1000000000, 1000000000], -294967296 * 0 + 4000000000, [[1000000000] * 4]),
+        ([1, -2, -5, -4, -3, 3, 3, 5], -11, [[-5, -4, -3, 1]]),
+    ]
+
+    all_passed = True
+    for nums, target, expected in test_cases:
+        result_two_ptr = sol.fourSum(list(nums), target)
+        result_brute = sol.fourSumBruteForce(list(nums), target)
+        norm_result = _normalize(result_two_ptr)
+        norm_expected = _normalize(expected)
+        status = "PASS" if norm_result == norm_expected else "FAIL"
+        if norm_result != norm_expected or _normalize(result_brute) != norm_expected:
+            all_passed = False
+        print(f"[{status}] fourSum({nums}, target={target}) -> "
+              f"{len(result_two_ptr)} quads (expected {len(expected)}) "
+              f"| matches brute force: {_normalize(result_brute) == norm_expected}")
+
+    print("\nAll tests passed!" if all_passed else "\nSome tests failed.")
+
+
+if __name__ == "__main__":
+    run_tests()
