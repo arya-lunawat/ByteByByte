@@ -1,0 +1,79 @@
+# 54. Spiral Matrix
+
+[LeetCode Problem](https://leetcode.com/problems/spiral-matrix/)
+
+## Problem
+
+Given an `m x n` matrix, return all of its elements in spiral order —
+starting top-left, moving right, then down, then left, then up,
+spiraling inward.
+
+```
+Input:  matrix = [[1,2,3],[4,5,6],[7,8,9]]
+Output: [1,2,3,6,9,8,7,4,5]
+
+Input:  matrix = [[1,2,3,4],[5,6,7,8],[9,10,11,12]]
+Output: [1,2,3,4,8,12,11,10,9,5,6,7]
+```
+
+**Constraints**
+- `m == matrix.length`
+- `n == matrix[i].length`
+- `1 <= m, n <= 10`
+- `-100 <= matrix[i][j] <= 100`
+
+The fiddly part isn't the general case — it's getting non-square
+matrices right without either skipping cells or visiting the same
+cell twice on the final inner row or column.
+
+## Approaches
+
+### 1. Shrinking boundaries — `spiralOrder()`
+
+Track four boundaries — `top`, `bottom`, `left`, `right` — that
+delimit the still-unvisited rectangle. Repeatedly:
+
+1. Walk left → right along `top`, then push `top` down.
+2. Walk top → bottom along `right`, then pull `right` in.
+3. **If a row still remains** (`top <= bottom`), walk right → left
+   along `bottom`, then pull `bottom` up.
+4. **If a column still remains** (`left <= right`), walk bottom → top
+   along `left`, then push `left` in.
+
+Repeat until the boundaries cross. Steps 3 and 4 are guarded
+specifically because, on the final single row or single column of a
+non-square matrix, skipping that guard would re-walk cells already
+visited by steps 1–2.
+
+- **Time:** `O(m · n)` — every cell is visited exactly once.
+- **Space:** `O(1)` extra, not counting the output list.
+
+This is the standard, most memory-efficient solution.
+
+### 2. Direct simulation with turn-on-obstacle — `spiralOrderSimulation()`
+
+Walk the grid one cell at a time in a current direction (right, down,
+left, up — cycling in that order), marking each cell visited as it's
+read. Whenever the next step would leave the grid or land on an
+already-visited cell, turn 90 degrees clockwise instead of stepping.
+Stop once every cell has been visited.
+
+This is a more literal "trace the spiral path" simulation. It's
+arguably easier to adapt to variants of the problem (like *filling* a
+matrix in spiral order rather than reading one), at the cost of an
+explicit `visited` grid.
+
+- **Time:** `O(m · n)` — every cell is visited exactly once.
+- **Space:** `O(m · n)` for the `visited` matrix.
+
+## Testing
+
+`solution.py` runs both approaches against 8 test cases: the
+problem's own examples, `1x1`, single-row, single-column, `2x2`,
+non-square (`4x3`), and negative values.
+
+```
+python3 solution.py
+```
+
+All test cases pass for both implementations.
